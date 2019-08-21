@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>mvvm</title>
+</head>
+<body>
+    <div id="app">
+        <input type="text" v-model="man.name">
+        <div>{{man.name}}</div>
+        <div>{{man.age}}</div>
+        <ul>
+            简单测试
+        </ul>
+    </div>
+    <script src="./src/mvvm.js"></script>
+    <script>
+        var app = new Vue({
+            el: "#app",
+            data: {
+                man: {
+                    name: '张三',
+                    age: 20
+                }
+            }
+        })
+    </script>
+</body>
+</html>
