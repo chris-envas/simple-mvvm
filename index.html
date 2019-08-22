@@ -8,12 +8,10 @@
 </head>
 <body>
     <div id="app">
+        <input type="text" v-model="test">
         <input type="text" v-model="man.name">
         <div>{{man.name}}</div>
         <div>{{man.age}}</div>
-        <ul>
-            简单测试
-        </ul>
     </div>
     <script src="./src/mvvm.js"></script>
     <script>
@@ -23,7 +21,8 @@
                 man: {
                     name: '张三',
                     age: 20
-                }
+                },
+                test: 'xx'
             }
         })
     </script>
