@@ -74,6 +74,7 @@ class Compile {
         return node.nodeType === 1;
     }
 }
+
 CompileUtil = {
     getValue(vm,expr) {
         let value = expr.split('.').reduce((data,current) => {
