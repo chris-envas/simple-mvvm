@@ -1,4 +1,4 @@
-#### Vue实现原理 - 如何实现双向绑定及mvvm模式
+#### Vue实现原理 - 如何实现双向数据绑定及mvvm模式
 
 ![vue](https://s2.ax1x.com/2019/08/22/mwugoT.png)
 
@@ -44,7 +44,7 @@ class Vue {
 }
 ```
 
-在创建`Compile`类，用于模板解析，它的工作内容主要为以下几点
+`Compile`类，用于模板解析，它的工作内容主要为以下几点
 
 ```javascript
 class Compile{
@@ -68,7 +68,7 @@ class Compile {
         this.compile(fragment)
     }
     isDirective(attrName) {
-        return attrName.startsWith('v-');
+        return attrName.startsWith('v-'); //判断属性中是否存在v-字段 返回 布尔值
     }
     compileElement(node) {
         let attributes = node.attributes;
@@ -151,18 +151,192 @@ class Vue {
         this.$el = options.el;
         this.$data  = options.data;
         if(this.$el) {
-            new Compile(this.$el,this)
-            new Observer(this.$data); // 数据劫持
+            new Compile(this.$el,this);
+            new Observer(this.$data); //新增 数据劫持
         }
+    }
+}
+```
+
+`Observer`类，用于监听数据，它的工作内容主要为以下几点
+
+```javascript
+class Observer{
+    constructor(el,vm) {
+     	// 观察传入的对象，利用Object.defineProperty监听数据变更
+        // 利用递归 循环监听所有传入的对象
+    }
+}
+```
+
+基础代码:
+
+```javascript
+class Observer {
+    constructor(data) {
+      this.observer(data);
+    }
+    observer(data) {
+        if(!data||typeof data !== 'object') return
+        for(let key in data) {
+            this.defineReactive(data,key,data[key]);
+        }
+    }
+    defineReactive (obj,key,value) {
+        this.observer(value);
+        Object.defineProperty(obj,key,{
+            get: () => {
+                return value;
+            },
+            set: (newValue) => {
+                if(newValue !== value) {
+                    this.observer(newValue);
+                    value = newValue;
+                }
+            }
+        })
+
     }
 }
 ```
 
 
 
+3、发布订阅
+
+> 将监听到的数据变更，实时的更替上去
+
+首先我们需要一个`Watcher`类，它的工作内容如下
+
+```javascript
+class Watcher {
+   // 获取当前观察对象的数据
+   // 当数据变更时，更新数据
+}
+```
+
+基础代码：
+
+```javascript
+class Watcher {
+    /*
+		vm 对象实例
+		expr 需要监听的对象表达式
+		cb 更新数据的回调函数
+	*/
+    constructor(vm,expr,cb) {
+        this.vm = vm;
+        this.expr = expr;
+        this.cb = cb;
+        this.oldValue = this.get();
+    }
+    get() {
+        let value = CompileUtil.getValue(this.vm,this.expr);
+        return value;
+    }
+    update() {
+        let newValue = CompileUtil.getValue(this.vm,this.expr);
+        if(this.oldValue !== newValue) {
+            this.cb(newValue)
+        }
+    }
+}
+```
+
+再来一个发布订阅`Dep`的类
+
+```javascript
+class Dep {
+    constructor() {
+        this.subs = [];
+    }
+    addSub(sub) {
+        this.subs.push(sub)
+    }
+    notify() {
+        this.subs.forEach(sub => {
+            sub.update()
+        })
+    }
+}
+```
+
+`Watcher`应该在哪里工作? 
+
+答案是在`CompileUtil`中
+
+```javascript
+CompileUtil = {
+    ...
+    model(node,expr,vm) { 
+       let data = this.getValue(vm,expr);
+       //新增 观察者
+       new Watcher(vm,expr,(newValue) => {
+            this.updater['modeUpdater'](node,newValue);
+       })
+       this.updater['modeUpdater'](node,data);
+    },
+    ...
+}
+```
+
+实例化一个`Watcher`会调用`this.get()`方法，`this.get()`在取值时，会触发`Observer`中的监听函数`get`
+
+```javascript
+class Watcher {
+    ...
+    get() {
+        // 在Dep设置一个全局属性
+        Dep.target = this;
+        // 触发监听的函数
+        let value = CompileUtil.getValue(this.vm,this.expr);
+        Dep.target = null;
+        return value;
+    }
+	...
+}
+```
+
+来到`Observer`中，此时在`get`函数中，我们就可以将`Watcher`实例放进`Dep`的容器`subs`中
+
+```javascript
+class Observer {
+    ...
+    defineReactive (obj,key,value) {
+        this.observer(value);
+        let dep = new Dep()
+        Object.defineProperty(obj,key,{
+            get: () => {
+                //新增 订阅
+                Dep.target && dep.subs.push(Dep.target);
+                return value;
+            },
+            set: (newValue) => {
+                if(newValue !== value) {
+                    console.log('监听',newValue)
+                    this.observer(newValue);
+                    value = newValue;
+                    //发布消息
+                    dep.notify();
+                }
+            }
+        })
+    }
+}
+```
+
+到这里，我们已经基本完成了双向绑定的功能！
 
 
-更新中...
+
+### 结束
+
+实现双向数据绑定的核心是
+
+- 模板解析
+- 数据劫持
+
+
 
 
 
