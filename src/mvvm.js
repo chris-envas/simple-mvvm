@@ -3,10 +3,27 @@ class Vue {
     constructor(options) {
         this.$el = options.el;
         this.$data  = options.data;
+        Object.keys(this.$data).forEach(key => {
+            this.proxyKeys(key);
+        })
         if(this.$el) {
             new Observer(this.$data); // 数据劫持
             new Compile(this.$el,this); //模板解析
         }
+    }
+    proxyKeys(key) {
+        console.log(key)
+        Object.defineProperty(this,key,{
+            enumerable: true,
+            configurable: false,
+            get: () => {
+                return this.$data[key];
+            },
+            set: (newValue) => {
+                console.log('newValue',newValue)
+                this.$data[key] = newValue;
+            }
+        })
     }
 }
 
@@ -27,7 +44,7 @@ class Observer {
             enumerable: true,
             configurable: false,
             get: () => {
-                Dep.target && dep.subs.push(Dep.target);
+                Dep.target && dep.addSub(Dep.target);
                 return value;
             },
             set: (newValue) => {
@@ -102,18 +119,32 @@ CompileUtil = {
         },vm.$data)
         return value
     },
+    setValue(vm,expr,value) {
+        expr.split('.').reduce((data,current,index,arr) => {
+            if(index == arr.length - 1){
+                data[current] = value
+            }
+            return data[current]
+        },vm.$data)
+    },
     model(node,expr,vm) { 
        let data = this.getValue(vm,expr);
        //观察者
        new Watcher(vm,expr,(newValue) => {
             this.updater['modeUpdater'](node,newValue);
        })
+       node.addEventListener('input', el => {
+          let value = el.target.value;
+          console.log(value)
+          this.setValue(vm,expr,value)
+       })
        this.updater['modeUpdater'](node,data);
     },
     getContentValue(vm,expr) {
-        return expr.replace(/\{\{(.+?)}\}/g,(...agrs) => {
+        let value =  expr.replace(/\{\{(.+?)}\}/g,(...agrs) => {
             return this.getValue(vm,agrs[1]);
         })
+        return value
     },
     text(node,expr,vm){ 
         let content = expr.replace(/\{\{(.+?)}\}/g, (...args) => {
@@ -153,10 +184,6 @@ class Dep {
     }
 }
 
-/*
-if vue 
-we will can vm.$watch(data,name,cb)
-*/
 class Watcher {
     constructor(vm,expr,cb) {
         this.vm = vm;

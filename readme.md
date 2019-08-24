@@ -51,10 +51,9 @@ class Vue {
 ```javascript
 class Compile{
     constructor(el,vm) {
-     	// 利用el获取相应的DOM节点
-        // 获取DOM节点节点内的所有子元素
+        // 创建文档碎片，接收el的里面所有子元素
         // 解析子元素中存在v-开头的属性及文本节点中存在{{}}标识
-        // 将vm中data数据挂载上去
+        // 将vm中$data对应的数据挂载上去
     }
 }
 ```
@@ -304,7 +303,7 @@ CompileUtil = {
 }
 ```
 
-实例化一个`Watcher`的同时会调用`this.get()`方法，`this.get()`在取值时，会触发被监听对象的`getter`函数
+实例化一个`Watcher`的同时会调用`this.get()`方法，`this.get()`在取值时，会触发被监听对象的`getter`
 
 ```javascript
 class Watcher {
@@ -323,6 +322,8 @@ class Watcher {
 
 来到`Observer`中，此时在`get`函数中，我们就可以将`Watcher`实例放进`Dep`的容器`subs`中
 
+> 这里dep,利用了闭包的特性，每次广播不会通知所有用户，提高了性能
+
 ```javascript
 class Observer {
     ...
@@ -332,7 +333,7 @@ class Observer {
         Object.defineProperty(obj,key,{
             get: () => {
                 //新增 订阅
-                Dep.target && dep.subs.push(Dep.target);
+                Dep.target && dep.addSub(Dep.target);
                 return value;
             },
             set: (newValue) => {
@@ -363,9 +364,86 @@ setTimeout(function(){
 
 ![测试](https://s2.ax1x.com/2019/08/24/msv7Wt.gif)
 
-### 参考
+到这里，我们已经完成了最核心的部分，**数据驱动视图**，但是众所周知,`v-model`是可以视图驱动数据的，于是我们再增加一个监听事件
 
-[剖析Vue实现原理 - 如何实现双向绑定mvvm](https://github.com/DMQ/mvvm)
+```javascript
+CompileUtil = {
+    ...
+	setValue(vm,expr,value) {
+    	//迭代属性赋值
+        expr.split('.').reduce((data,current,index,arr) => {
+            if(index == arr.length - 1){
+                data[current] = value
+            }
+            return data[current]
+        },vm.$data)
+    },
+    model(node,expr,vm) { 
+       let data = this.getValue(vm,expr);
+       new Watcher(vm,expr,(newValue) => {
+            this.updater['modeUpdater'](node,newValue);
+       })
+        //事件监听
+       node.addEventListener('input', el => {
+          let value = el.target.value;
+          console.log(value)
+          this.setValue(vm,expr,value)
+       })
+       this.updater['modeUpdater'](node,data);
+    },
+        ...
+}
+```
+
+效果如下:
+
+![](https://s2.ax1x.com/2019/08/24/myR75Q.gif)
+
+最后为Vue实例添加一个属性代理的方法，使访问`vm`的属性代理为访问`vm._data`的属性
+
+```javascript
+
+class Vue {
+    constructor(options) {
+        ...
+        this.$data  = options.data;
+        Object.keys(this.$data).forEach(key => {
+            this.proxyKeys(key);
+        })
+      	...
+    }
+    proxyKeys(key) {
+        console.log(key)
+        Object.defineProperty(this,key,{
+            enumerable: true,
+            configurable: false,
+            get: () => {
+                return this.$data[key];
+            },
+            set: (newValue) => {
+                console.log('newValue',newValue)
+                this.$data[key] = newValue;
+            }
+        })
+    }
+}
+```
+
+大功告成！
+
+
+
+
+
+
+
+
+
+### 结束
+
+源码：https://github.com/luojinxu520/simple-mvvm
+
+参考 :  [剖析Vue实现原理 - 如何实现双向绑定mvvm](https://github.com/DMQ/mvvm)
 
 
 
