@@ -265,7 +265,7 @@ class Dep {
 
 接下来，让我们把`Watcher`和`Dep`类关联起来
 
-紧接着,在`CompileUtil`的`model`、`text`分别创建`Watcher`实例
+在`CompileUtil`的`model`、`text`方法中分别新建`Watcher`实例
 
 > `Watcher`在接收到`Dep`的广播时，需要一个对应的回调函数，更新数据
 
@@ -304,7 +304,7 @@ CompileUtil = {
 }
 ```
 
-实例化一个`Watcher`会调用`this.get()`方法，`this.get()`在取值时，会触发被监听对象的`getter`函数
+实例化一个`Watcher`的同时会调用`this.get()`方法，`this.get()`在取值时，会触发被监听对象的`getter`函数
 
 ```javascript
 class Watcher {
@@ -349,7 +349,7 @@ class Observer {
 }
 ```
 
-此时，一旦被监听的对象数据发生变更，就会触发`Dep`的`notify`广播功能！
+此时，`Watcher`和`Dep`已形成关联，一旦被监听的对象数据发生变更，就会触发`Dep`的`notify`广播功能，进而触发`Watcher`的`update`方法执行回调函数！
 
 测试：
 
