@@ -24,6 +24,8 @@ class Observer {
         this.observer(value);
         let dep = new Dep()
         Object.defineProperty(obj,key,{
+            enumerable: true,
+            configurable: false,
             get: () => {
                 Dep.target && dep.subs.push(Dep.target);
                 return value;

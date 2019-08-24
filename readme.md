@@ -1,6 +1,8 @@
-#### Vue实现原理 - 如何实现双向数据绑定及mvvm模式
+#### Vue实现原理 - 如何实现双向数据绑定
 
-![vue](https://s2.ax1x.com/2019/08/22/mwugoT.png)
+![vue](https://github.com/DMQ/mvvm/raw/master/img/3.png)
+
+图片来源： [剖析Vue实现原理 - 如何实现双向绑定mvvm](https://github.com/DMQ/mvvm)
 
 
 
@@ -163,8 +165,8 @@ class Vue {
 ```javascript
 class Observer{
     constructor(el,vm) {
-     	// 观察传入的对象，利用Object.defineProperty监听数据变更
-        // 利用递归 循环监听所有传入的对象
+     	// 利用Object.defineProperty监听所有属性
+        // 递归循环监听所有传入的对象
     }
 }
 ```
@@ -210,8 +212,8 @@ class Observer {
 
 ```javascript
 class Watcher {
-   // 获取当前观察对象的数据
-   // 当数据变更时，更新数据
+   // 存储当前观察属性对象的数据
+   // 当前观察属性对象数据变更时，更新数据
 }
 ```
 
@@ -261,12 +263,21 @@ class Dep {
 }
 ```
 
-`Watcher`应该在哪里工作? 
+接下来，让我们把`Watcher`和`Dep`类关联起来
 
-答案是在`CompileUtil`中
+紧接着,在`CompileUtil`的`model`、`text`分别创建`Watcher`实例
+
+> `Watcher`在接收到`Dep`的广播时，需要一个对应的回调函数，更新数据
 
 ```javascript
 CompileUtil = {
+    getValue(vm,expr) {
+        // 解析表达式值 获取vm.$data内对应的数据
+        let value = expr.split('.').reduce((data,current) => {
+            return data[current]
+        },vm.$data)
+        return value
+    },
     ...
     model(node,expr,vm) { 
        let data = this.getValue(vm,expr);
@@ -277,10 +288,23 @@ CompileUtil = {
        this.updater['modeUpdater'](node,data);
     },
     ...
+    text(node,expr,vm){ 
+        let content = expr.replace(/\{\{(.+?)}\}/g, (...args) => {
+             /*
+             	新增 观察者
+                匹配多个{{}}字段
+             */
+            new Watcher(vm,args[1],() => {
+                this.updater['textUpdater'](node,this.getContentValue(vm,expr));
+            })
+            return this.getValue(vm,args[1]);
+        })
+        this.updater['textUpdater'](node,content);
+    },
 }
 ```
 
-实例化一个`Watcher`会调用`this.get()`方法，`this.get()`在取值时，会触发`Observer`中的监听函数`get`
+实例化一个`Watcher`会调用`this.get()`方法，`this.get()`在取值时，会触发被监听对象的`getter`函数
 
 ```javascript
 class Watcher {
@@ -288,7 +312,7 @@ class Watcher {
     get() {
         // 在Dep设置一个全局属性
         Dep.target = this;
-        // 触发监听的函数
+        // 取值会触发被监听对象的getter函数
         let value = CompileUtil.getValue(this.vm,this.expr);
         Dep.target = null;
         return value;
@@ -316,7 +340,7 @@ class Observer {
                     console.log('监听',newValue)
                     this.observer(newValue);
                     value = newValue;
-                    //发布消息
+                    //广播
                     dep.notify();
                 }
             }
@@ -325,16 +349,23 @@ class Observer {
 }
 ```
 
-到这里，我们已经基本完成了双向绑定的功能！
+此时，一旦被监听的对象数据发生变更，就会触发`Dep`的`notify`广播功能！
 
+测试：
 
+```javascript
+setTimeout(function(){
+    app.$data.test = "123"
+},3000)
+```
 
-### 结束
+结果：
 
-实现双向数据绑定的核心是
+![测试](https://s2.ax1x.com/2019/08/24/msv7Wt.gif)
 
-- 模板解析
-- 数据劫持
+### 参考
+
+[剖析Vue实现原理 - 如何实现双向绑定mvvm](https://github.com/DMQ/mvvm)
 
 
 
