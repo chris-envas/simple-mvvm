@@ -1,4 +1,4 @@
-#### Vue实现原理 - 如何实现双向数据绑定
+#### 二百行代码实现双向数据绑定
 
 ![vue](https://github.com/DMQ/mvvm/raw/master/img/3.png)
 
@@ -431,17 +431,9 @@ class Vue {
 
 大功告成！
 
-
-
-
-
-
-
-
-
 ### 结束
 
-源码：https://github.com/luojinxu520/simple-mvvm
+源码：https://github.com/luojinxu520/simple-mvvm/blob/master/src/mvvm.js
 
 参考 :  [剖析Vue实现原理 - 如何实现双向绑定mvvm](https://github.com/DMQ/mvvm)
 
