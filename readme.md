@@ -1,4 +1,9 @@
-#### 二百行代码实现双向数据绑定
+#### [Vue]二百行代码实现数据双向绑定
+
+### 前言
+
+
+
 
 ![vue](https://github.com/DMQ/mvvm/raw/master/img/3.png)
 
@@ -9,10 +14,11 @@
 1、数据挂载
 
 ```html
-<div id="app">
-    <input type="text" v-model="man.name">
-    <div>{{man.name}}</div>
-    <div>{{man.age}}</div>
+ <div id="app">
+     <input type="text" v-model="text">
+     <input type="text" v-model="man.name">
+     <div v-html="text"></div>
+     <div>{{man.name}}{{man.age}}{{text}}</div>
 </div>
 ```
 
@@ -21,9 +27,10 @@ var app = new Vue({
     el: "#app",
     data: {
         man: {
-            name: '张三',
+            name: '小白',
             age: 20
-        }
+        },
+        text: 'hello world',
     }
 })
 ```
@@ -58,7 +65,7 @@ class Compile{
 }
 ```
 
-完整代码:
+基础代码:
 
 ```javascript
 class Compile {
@@ -114,19 +121,25 @@ class Compile {
 
 CompileUtil = {
     getValue(vm,expr) {
+        // 解析表达式值 获取vm.$data内对应的数据
         let value = expr.split('.').reduce((data,current) => {
             return data[current]
         },vm.$data)
         return value
     },
-    model(node,expr,vm) {
-       let data = this.getValue(vm,expr) 
-       this.updater['modeUpdater'](node,data) 
+    model(node,expr,vm) { 
+       let data = this.getValue(vm,expr);
+       this.updater['modeUpdater'](node,data);
     },
-    text(node,expr,vm){
+    html(node,expr,vm){
+        let data = this.getValue(vm,expr);
+        this.updater['htmlUpdater'](node,data);
+    },
+    text(node,expr,vm){ 
         let content = expr.replace(/\{\{(.+?)}\}/g, (...args) => {
-            return this.getValue(vm,args[1])
+            return this.getValue(vm,args[1]);
         })
+        console.log(content)
         this.updater['textUpdater'](node,content);
     },
     updater:{
@@ -135,6 +148,9 @@ CompileUtil = {
         },
         textUpdater(node,value){
             node.textContent = value;
+        },
+        htmlUpdater(node,value){
+            node.innerHTML = value;
         }
     }
 }
@@ -286,6 +302,14 @@ CompileUtil = {
        })
        this.updater['modeUpdater'](node,data);
     },
+    html(node,expr,vm){
+        let data = this.getValue(vm,expr);
+         //新增 观察者
+        new Watcher(vm,expr,(newValue) => {
+            this.updater['htmlUpdater'](node,newValue);
+        })
+        this.updater['htmlUpdater'](node,data);
+    },
     ...
     text(node,expr,vm){ 
         let content = expr.replace(/\{\{(.+?)}\}/g, (...args) => {
@@ -362,7 +386,7 @@ setTimeout(function(){
 
 结果：
 
-![测试](https://s2.ax1x.com/2019/08/24/msv7Wt.gif)
+![测试](https://s2.ax1x.com/2019/08/26/mR44DH.gif)
 
 到这里，我们已经完成了最核心的部分，**数据驱动视图**，但是众所周知,`v-model`是可以视图驱动数据的，于是我们再增加一个监听事件
 
@@ -397,7 +421,7 @@ CompileUtil = {
 
 效果如下:
 
-![](https://s2.ax1x.com/2019/08/24/myR75Q.gif)
+![](https://s2.ax1x.com/2019/08/26/mR45bd.gif)
 
 最后为Vue实例添加一个属性代理的方法，使访问`vm`的属性代理为访问`vm._data`的属性
 
@@ -435,7 +459,11 @@ class Vue {
 
 源码：https://github.com/luojinxu520/simple-mvvm/blob/master/src/mvvm.js
 
-参考 :  [剖析Vue实现原理 - 如何实现双向绑定mvvm](https://github.com/DMQ/mvvm)
+参考 : 
+
+1、 [剖析Vue实现原理 - 如何实现双向绑定mvvm](https://github.com/DMQ/mvvm)
+
+2、[珠峰架构前端技术公开课](https://ke.qq.com/course/367589)
 
 
 

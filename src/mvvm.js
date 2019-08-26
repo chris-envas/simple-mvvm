@@ -75,7 +75,7 @@ class Compile {
         [...attributes].forEach(attr => {
             let {name,value} = attr
             if(this.isDirective(name)) {
-                let [,directive] = name.split('-')
+                let [,directive] = name.split('-');
                 CompileUtil[directive](node,value,this.vm);
             }
         })
@@ -140,6 +140,13 @@ CompileUtil = {
        })
        this.updater['modeUpdater'](node,data);
     },
+    html(node,expr,vm){
+        let data = this.getValue(vm,expr);
+        new Watcher(vm,expr,(newValue) => {
+            this.updater['htmlUpdater'](node,newValue);
+       })
+        this.updater['htmlUpdater'](node,data);
+    },
     getContentValue(vm,expr) {
         let value =  expr.replace(/\{\{(.+?)}\}/g,(...agrs) => {
             return this.getValue(vm,agrs[1]);
@@ -165,6 +172,9 @@ CompileUtil = {
         },
         textUpdater(node,value){
             node.textContent = value;
+        },
+        htmlUpdater(node,value){
+            node.innerHTML = value;
         }
     }
 }

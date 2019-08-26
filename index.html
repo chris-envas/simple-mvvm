@@ -8,10 +8,10 @@
 </head>
 <body>
     <div id="app">
-        <input type="text" v-model="test">
+        <input type="text" v-model="text">
         <input type="text" v-model="man.name">
-        <div>{{man.name}}{{test}}</div>
-        <div>{{man.age}}</div>
+        <div v-html="text"></div>
+        <div>{{man.name}}{{man.age}}{{text}}</div>
     </div>
     <script src="./src/mvvm.js"></script>
     <script>
@@ -19,16 +19,15 @@
             el: "#app",
             data: {
                 man: {
-                    name: '张三',
+                    name: '小白',
                     age: 20
                 },
-                test: 'xx'
+                text: 'hello world',
             }
         })
 
         setTimeout(function(){
-            console.log('xx')
-            app.test = "123"
+            app.text = "I am fine"
         },3000)
     </script>
 </body>
